@@ -253,17 +253,3 @@ class GraphData(BaseData, FeatureStore, GraphStore):
         if "index" in self._store["edge"]:
             edge_attrs.append(EdgeAttr(layout=EdgeLayout.COO))
         return edge_attrs
-
-
-# Example usage
-data = GraphData(
-    node={"x": torch.randn(10, 3)},
-    edge={
-        "index": torch.tensor([[0, 1, 2], [1, 2, 3]]),
-        "edge_attr": torch.randn(3, 2),
-    },
-    graph={"y": torch.tensor([1])},
-)
-print(data.num_nodes)  # Output: 10
-print(data.num_edges)  # Output: 3
-print(data.validate())  # Output: True

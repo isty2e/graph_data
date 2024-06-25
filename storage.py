@@ -18,7 +18,7 @@ class NodeDataStorage(NodeStorage):
     def validate_dim(self) -> bool:
         expected_dim = self.num_nodes
         if expected_dim is None:
-            return True  # 노드가 없는 경우도 유효하다고 간주
+            return True
         return self._validate_dim_recursive(self._mapping, expected_dim)
 
     def _validate_dim_recursive(self, data: Dict[str, Any], expected_dim: int) -> bool:
@@ -47,7 +47,7 @@ class EdgeDataStorage(EdgeStorage):
     def validate_dim(self) -> bool:
         expected_dim = self.num_edges
         if expected_dim is None:
-            return True  # 엣지가 없는 경우도 유효하다고 간주
+            return True
         return self._validate_dim_recursive(self._mapping, expected_dim)
 
     def _validate_dim_recursive(self, data: Dict[str, Any], expected_dim: int) -> bool:

@@ -1,0 +1,31 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-symlinks
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: double-quote-string-fixer
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: debug-statements
+        # -   id: flake8
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.10
+    hooks:
+      - id: ruff
+        name: ruff-lint
+        args: [--fix]
+        stages: [commit]
+      - id: ruff
+        name: ruff-sort-import
+        args: [--select, I, --fix]
+        stages: [commit]
+      - id: ruff-format
+        name: ruff-format
+        args: [--preview]
+        stages: [commit]

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graph_learn"
+version = "0.0.1"
+description = "Moiety-based Molecular Graph Generation"
+readme = "README.md"
+keywords = ["python"]
+dynamic = ["dependencies", "optional-dependencies"]
+
+[tool.ruff]
+preview = true

@@ -1,9 +1,11 @@
+from collections.abc import Mapping
+from numbers import Number
+from typing import Any, Dict, List, Sequence, Union
+
 import torch
 from torch import Tensor
-from typing import Sequence, List, Dict, Any, Union
-from collections.abc import Mapping
-from data import GraphData
-from numbers import Number
+
+from .data import GraphData, MultiGraphData
 
 
 class GraphDataCollator:
@@ -14,8 +16,18 @@ class GraphDataCollator:
         self.node_feature_key = config.get("node_feature_key", "x")
         self.edge_index_key = config.get("edge_index_key", "index")
 
-    def __call__(self, batch: Sequence[GraphData]) -> GraphData:
-        return self.collate_graph_data(batch)
+    def __call__(
+        self, batch: List[Union[GraphData, MultiGraphData]]
+    ) -> Union[GraphData, MultiGraphData]:
+        elem = batch[0]
+        if isinstance(elem, MultiGraphData):
+            return self.collate_multi_graph_data(batch)
+        elif isinstance(elem, GraphData):
+            return self.collate_graph_data(batch)
+        else:
+            raise TypeError(
+                f"Batch must contain GraphData or MultiGraphData, not {type(elem)}"
+            )
 
     def collate_graph_data(self, batch: Sequence[GraphData]) -> GraphData:
         out = GraphData()
@@ -29,6 +41,14 @@ class GraphDataCollator:
         self.add_batch_info(out, batch)
         return out
 
+    def collate_multi_graph_data(self, batch: List[MultiGraphData]) -> MultiGraphData:
+        out = MultiGraphData()
+        all_keys = set().union(*(data.keys() for data in batch))
+        for key in all_keys:
+            sub_batch = [data[key] for data in batch if key in data]
+            out[key] = self.collate_graph_data(sub_batch)
+        return out
+
     def collate_store(
         self, batch: Sequence[GraphData], store_key: str
     ) -> Dict[str, Any]:
@@ -38,7 +58,7 @@ class GraphDataCollator:
                 continue
 
             values = [data[store_key][attr] for data in batch]
-            out_store[attr] = self.collate_attribute(values)
+            out_store[attr] = self.collate_attribute(values, f"{store_key}.{attr}")
 
             if attr in self.follow_batch:
                 out_store[f"{attr}_batch"] = self.create_batch_vector(values)
@@ -53,11 +73,11 @@ class GraphDataCollator:
         if "edge" in out and self.edge_index_key in out["edge"]:
             out["edge"]["batch"] = self.create_edge_batch_vector(batch)
 
-    def collate_attribute(self, values: List[Any]) -> Any:
+    def collate_attribute(self, values: List[Any], attr: str) -> Any:
         elem = values[0]
         elem_type = type(elem)
         if isinstance(elem, Tensor):
-            return self.collate_tensor(values)
+            return self.collate_tensor(values, attr)
         elif isinstance(elem, float):
             return torch.tensor(values, dtype=torch.float)
         elif isinstance(elem, int):
@@ -66,27 +86,35 @@ class GraphDataCollator:
             return values
         elif isinstance(elem, Mapping):
             return {
-                key: self.collate_attribute([d[key] for d in values]) for key in elem
+                key: self.collate_attribute([d[key] for d in values], f"{attr}.{key}")
+                for key in elem
             }
         elif isinstance(elem, tuple) and hasattr(elem, "_fields"):
             return elem_type(
-                *(self.collate_attribute(samples) for samples in zip(*values))
+                *(
+                    self.collate_attribute(samples, f"{attr}.{i}")
+                    for i, samples in enumerate(zip(*values))
+                )
             )
         elif isinstance(elem, Sequence) and not isinstance(elem, str):
-            return [self.collate_attribute(samples) for samples in zip(*values)]
+            return [
+                self.collate_attribute(samples, f"{attr}.{i}")
+                for i, samples in enumerate(zip(*values))
+            ]
         else:
             raise TypeError(f"Cannot collate data of type {elem_type}")
 
-    def collate_tensor(self, values: List[Tensor]) -> Tensor:
+    def collate_tensor(self, values: List[Tensor], attr: str) -> Tensor:
         if values[0].dim() == 0:
             return torch.stack(values, 0)
 
-        # Check if all tensors have the same shape except for the first dimension
-        shapes = [v.shape[1:] for v in values]
-        if len(set(shapes)) > 1:
-            return torch.cat([v.unsqueeze(0) for v in values], 0)
+        cat_dim = self.get_cat_dim(attr, values[0])
+        return torch.cat(values, dim=cat_dim)
 
-        return torch.cat(values, 0)
+    def get_cat_dim(self, attr: str, elem: torch.Tensor) -> int:
+        # This method can use the __cat_dim__ logic from GraphData
+        cat_dim = GraphData().__cat_dim__(attr, elem)
+        return cat_dim if isinstance(cat_dim, int) else 0
 
     def create_batch_vector(self, values: List[Tensor]) -> Tensor:
         batch = []

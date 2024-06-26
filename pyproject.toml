@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "graph_learn"
+name = "graph_data"
 version = "0.0.1"
-description = "Moiety-based Molecular Graph Generation"
+description = "A more flexible graph data structure"
 readme = "README.md"
 keywords = ["python"]
 dynamic = ["dependencies", "optional-dependencies"]

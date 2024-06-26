@@ -1,6 +1,7 @@
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
+
 from torch import Tensor
-from torch_geometric.data.storage import NodeStorage, EdgeStorage, BaseStorage
+from torch_geometric.data.storage import BaseStorage, EdgeStorage, NodeStorage
 
 
 class NodeDataStorage(NodeStorage):

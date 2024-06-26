@@ -1,18 +1,18 @@
-import copy
-import torch
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from torch import Tensor
 from torch_geometric.data import (
     BaseData,
+    EdgeAttr,
+    EdgeLayout,
     FeatureStore,
     GraphStore,
     TensorAttr,
-    EdgeAttr,
-    EdgeLayout,
 )
 from torch_geometric.data.storage import BaseStorage
 from torch_geometric.utils import is_sparse
-from typing import Any, Optional, Union, Dict, List, Tuple
-from storage import NodeDataStorage, EdgeDataStorage, GraphDataStorage
+
+from .storage import EdgeDataStorage, GraphDataStorage, NodeDataStorage
 
 
 class GraphData(BaseData, FeatureStore, GraphStore):
@@ -253,3 +253,13 @@ class GraphData(BaseData, FeatureStore, GraphStore):
         if "index" in self._store["edge"]:
             edge_attrs.append(EdgeAttr(layout=EdgeLayout.COO))
         return edge_attrs
+
+
+class MultiGraphData(Dict[str, GraphData]):
+    def __setitem__(self, key: str, value: GraphData):
+        if not isinstance(value, GraphData):
+            raise TypeError(f"Value must be GraphData, not {type(value)}")
+        super().__setitem__(key, value)
+
+    def __getitem__(self, key: str) -> GraphData:
+        return super().__getitem__(key)
